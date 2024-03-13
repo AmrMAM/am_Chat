@@ -16,7 +16,11 @@ class ScreenControllerGlobalChat extends AmController<ScreenModelGlobalChat> {
       return;
     }
     connection.on("recieveMessage", (args) {
-      recieveMessage(args?[0].toString() ?? "", args?[1].toString() ?? "");
+      recieveMessage(
+        args?[0].toString() ?? "",
+        args?[1].toString() ?? "",
+        args?[2] ?? false,
+      );
     });
     await connection.start();
     state.connectionState = connection.state == HubConnectionState.connected;
@@ -27,12 +31,16 @@ class ScreenControllerGlobalChat extends AmController<ScreenModelGlobalChat> {
 
   void sendBtn() async {
     await connection
-        .invoke('sendMessage', args: [state.userName, state.message]);
+        .invoke('sendMessage', args: [state.userName, state.message, false]);
   }
 
   // =============================[Client side functions]=======================
-  void recieveMessage(String userName, String message) {
-    state.msgList.add(ChatMessage(userName: userName, body: message));
+  void recieveMessage(String userName, String message, bool isFile) {
+    state.msgList.add(ChatMessage(
+      userName: userName,
+      body: message,
+      isFile: isFile,
+    ));
     refresh();
   }
   //----------------------------------------------------------------------------
