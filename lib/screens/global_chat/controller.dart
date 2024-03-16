@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:am_chat/models/message.dart';
 import 'package:am_chat/screens/global_chat/model.dart';
 import 'package:am_state/am_state.dart';
@@ -15,6 +16,10 @@ class ScreenControllerGlobalChat extends AmController<ScreenModelGlobalChat> {
 
   // use the command 'refresh();' inside functions to update the view widget
   // ---------------------------------------------------------------------------
+  void toggleCreateJoin() {
+    state.createOrJoin = !state.createOrJoin;
+    refresh();
+  }
 
   void connectBtn() async {
     if (state.userName.isEmpty) {
@@ -38,7 +43,7 @@ class ScreenControllerGlobalChat extends AmController<ScreenModelGlobalChat> {
   void recieveMessage(String userName, String message, bool isFile) {
     state.msgList.add(ChatMessage(
       userName: userName,
-      body: message,
+      body: const Utf8Decoder().convert(message.codeUnits),
       isFile: isFile,
     ));
     refresh();
