@@ -12,7 +12,7 @@ class ScreenUIGlobalChat extends AmViewWidget<ScreenControllerGlobalChat> {
   Widget build(BuildContext context, am) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Global Chatting"),
+        title: const Text("Global Chatting 00"),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Padding(
