@@ -1,7 +1,10 @@
+import 'package:am_chat/models/message.dart';
 import 'package:am_chat/screens/global_chat/controller.dart';
 import 'package:am_chat/screens/global_chat/model.dart';
 import 'package:am_state/am_state.dart';
 import 'package:flutter/material.dart';
+import '../../services/am_functions.dart';
+import 'package:signalr_netcore/signalr_client.dart';
 
 class ScreenUIGlobalChat extends AmViewWidget<ScreenControllerGlobalChat> {
   const ScreenUIGlobalChat({super.key});
@@ -23,7 +26,7 @@ class ScreenUIGlobalChat extends AmViewWidget<ScreenControllerGlobalChat> {
                 direction: Axis.vertical,
                 children: [
                   const SizedBox(height: 30),
-                  if (!am.state.connectionState)
+                  if (am.showConnect)
                     ConnectBox(
                       connectFn: am.connectBtn,
                       onUsrChanged: (userName) => am.state.userName = userName,
@@ -33,17 +36,43 @@ class ScreenUIGlobalChat extends AmViewWidget<ScreenControllerGlobalChat> {
                     ),
                   Expanded(
                     child: ListView.builder(
-                      itemCount: am.state.msgList.length,
+                      controller: am.state.msgScrollerController,
+                      itemCount: am.state.msgList.length + 1,
                       itemBuilder: (ctx, i) {
+                        if (i >= am.state.msgList.length) {
+                          return Container(
+                            height: 20,
+                          );
+                        }
                         var msg = am.state.msgList[i];
-                        return Text("${msg.userName}: ${msg.body}");
+                        var showIdentity = true;
+                        if (i > 0) {
+                          showIdentity =
+                              msg.userName != am.state.msgList[i - 1].userName;
+                        }
+                        return MsgItem(
+                          msg: msg,
+                          showIdentity: showIdentity,
+                          myUsername: am.state.userName,
+                        );
                       },
                     ),
                   ),
-                  SendBox(
-                    onChanged: (msg) => am.state.message = msg,
-                    sendFn: am.sendBtn,
-                  ),
+                  if (am.globalChat.connectionState ==
+                      HubConnectionState.Connected)
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        left: 10,
+                        right: 10,
+                        bottom: 10,
+                      ),
+                      child: SendBox(
+                        sendFn: am.sendBtn,
+                        toggleLTR: am.toggleLTR,
+                        ltr: am.state.ltr,
+                        msgBodyTextController: am.state.msgBodyTextController,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -55,6 +84,91 @@ class ScreenUIGlobalChat extends AmViewWidget<ScreenControllerGlobalChat> {
 
   @override
   get config => ScreenControllerGlobalChat(ScreenModelGlobalChat());
+}
+
+class MsgItem extends StatelessWidget {
+  const MsgItem({
+    super.key,
+    required this.msg,
+    required this.showIdentity,
+    required this.myUsername,
+  });
+
+  final ChatMessage msg;
+  final bool showIdentity;
+  final String myUsername;
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection:
+          myUsername != msg.userName ? TextDirection.ltr : TextDirection.rtl,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Flex(
+          direction: Axis.horizontal,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (showIdentity)
+              CircleAvatar(
+                radius: 25,
+                child: Text(
+                  AmFunctions.getShortName(msg.userName),
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                ),
+              ),
+            if (!showIdentity) const SizedBox(width: 50),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (showIdentity)
+                    Row(
+                      children: [
+                        const SizedBox(width: 5),
+                        Text(msg.userName),
+                      ],
+                    ),
+                  const SizedBox(height: 3),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Colors.blueGrey, Colors.deepPurple],
+                      ),
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.white,
+                          spreadRadius: 2,
+                          blurStyle: BlurStyle.outer,
+                          blurRadius: 5,
+                        )
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    clipBehavior: Clip.hardEdge,
+                    constraints: const BoxConstraints(
+                      minWidth: 50,
+                    ),
+                    child: Text(
+                      msg.body,
+                      textDirection:
+                          msg.ltr ? TextDirection.ltr : TextDirection.rtl,
+                      softWrap: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 40),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class ConnectBox extends StatelessWidget {
@@ -91,7 +205,7 @@ class ConnectBox extends StatelessWidget {
         ],
       ),
       // padding: const EdgeInsets.all(4),
-      height: 300,
+      // height: 300,
       width: 400,
       clipBehavior: Clip.hardEdge,
       child: Flex(
@@ -99,7 +213,7 @@ class ConnectBox extends StatelessWidget {
         children: [
           Container(
             color: Theme.of(context).dialogBackgroundColor,
-            padding: const EdgeInsets.only(bottom: 1.5),
+            padding: const EdgeInsets.only(bottom: 1),
             child: Flex(
               direction: Axis.horizontal,
               children: [
@@ -214,6 +328,7 @@ class ConnectBox extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -221,9 +336,17 @@ class ConnectBox extends StatelessWidget {
 }
 
 class SendBox extends StatelessWidget {
-  const SendBox({super.key, required this.sendFn, required this.onChanged});
+  const SendBox({
+    super.key,
+    required this.sendFn,
+    required this.toggleLTR,
+    required this.ltr,
+    required this.msgBodyTextController,
+  });
   final void Function() sendFn;
-  final void Function(String msg) onChanged;
+  final void Function() toggleLTR;
+  final TextEditingController msgBodyTextController;
+  final bool ltr;
 
   @override
   Widget build(BuildContext context) {
@@ -242,22 +365,50 @@ class SendBox extends StatelessWidget {
           )
         ],
       ),
-      padding: const EdgeInsets.all(4),
       height: 50,
       clipBehavior: Clip.hardEdge,
       child: Flex(
         direction: Axis.horizontal,
         children: [
+          IconButton.filledTonal(
+            style: ButtonStyle(
+                shape: MaterialStatePropertyAll(RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(0)))),
+            padding: const EdgeInsets.all(10),
+            onPressed: toggleLTR,
+            icon: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.rtt_outlined, size: 30),
+              ],
+            ),
+          ),
+          const SizedBox(width: 5),
           Expanded(
-            child: TextField(
-              onChanged: onChanged,
+            child: Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: Flex(
+                direction: Axis.horizontal,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: msgBodyTextController,
+                      minLines: 1,
+                      maxLines: 3,
+                      textDirection:
+                          ltr ? TextDirection.ltr : TextDirection.rtl,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 5),
           IconButton.filledTonal(
             onPressed: sendFn,
-            icon: const Icon(Icons.send, size: 25),
+            icon: const Icon(Icons.send, size: 30),
           ),
+          const SizedBox(width: 3),
         ],
       ),
     );
