@@ -19,6 +19,8 @@ class GlobalChatEngine {
   HubConnectionState get connectionState =>
       _connection.state ?? HubConnectionState.Disconnected;
 
+  bool _manualStopped = false;
+
   set addOnRecieveMessage(
       void Function(Uint8List username, Uint8List message, bool isFile) v) {
     var i = _recieveMessageEvents.indexWhere((element) => element == v);
@@ -49,12 +51,23 @@ class GlobalChatEngine {
         );
       }
     });
+
+    _connection.onclose(({error}) async {
+      if (!_manualStopped) {
+        await _connection.start();
+
+        if (connectionState == HubConnectionState.Connected) {
+          /// todo: invoke on server side connected again;
+        }
+      }
+    });
   }
 
   Future<void> connect(String username) async {
     if (username.isEmpty) {
       return;
     }
+    _manualStopped = false;
     if (connectionState == HubConnectionState.Disconnected) {
       await _connection.start();
       if (connectionState == HubConnectionState.Connected) {
@@ -66,7 +79,10 @@ class GlobalChatEngine {
     }
   }
 
-  Future<void> stop() async => await _connection.stop();
+  Future<void> stop() async {
+    await _connection.stop();
+    _manualStopped = true;
+  }
 
   Future<void> sendMessage(String username, String message, bool isFile) async {
     await _connection.invoke('sendMessage', args: [

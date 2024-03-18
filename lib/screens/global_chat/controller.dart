@@ -4,8 +4,8 @@ import 'package:am_chat/models/message.dart';
 import 'package:am_chat/screens/global_chat/model.dart';
 import 'package:am_chat/services/global_chat_engine.dart';
 import 'package:am_state/am_state.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 
 class ScreenControllerGlobalChat extends AmController<ScreenModelGlobalChat> {

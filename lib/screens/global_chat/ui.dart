@@ -3,6 +3,8 @@ import 'package:am_chat/screens/global_chat/controller.dart';
 import 'package:am_chat/screens/global_chat/model.dart';
 import 'package:am_state/am_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import '../../services/am_functions.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 
@@ -133,31 +135,39 @@ class MsgItem extends StatelessWidget {
                       ],
                     ),
                   const SizedBox(height: 3),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Colors.blueGrey, Colors.deepPurple],
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: msg.body)).then(
+                          (_) => ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text("Copied to clipboard;"))));
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Colors.blueGrey, Colors.deepPurple],
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.white,
+                            spreadRadius: 1,
+                            blurStyle: BlurStyle.outer,
+                            blurRadius: 5,
+                          )
+                        ],
                       ),
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.white,
-                          spreadRadius: 2,
-                          blurStyle: BlurStyle.outer,
-                          blurRadius: 5,
-                        )
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(8),
-                    clipBehavior: Clip.hardEdge,
-                    constraints: const BoxConstraints(
-                      minWidth: 50,
-                    ),
-                    child: Text(
-                      msg.body,
-                      textDirection:
-                          msg.ltr ? TextDirection.ltr : TextDirection.rtl,
-                      softWrap: true,
+                      padding: const EdgeInsets.all(8),
+                      clipBehavior: Clip.hardEdge,
+                      constraints: const BoxConstraints(
+                        minWidth: 50,
+                      ),
+                      child: Text(
+                        msg.body,
+                        textDirection:
+                            msg.ltr ? TextDirection.ltr : TextDirection.rtl,
+                        softWrap: true,
+                      ),
                     ),
                   ),
                 ],
@@ -397,6 +407,11 @@ class SendBox extends StatelessWidget {
                       maxLines: 3,
                       textDirection:
                           ltr ? TextDirection.ltr : TextDirection.rtl,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: "Write your message",
+                        contentPadding: EdgeInsets.all(2),
+                      ),
                     ),
                   ),
                 ],
